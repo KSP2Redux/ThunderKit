@@ -159,15 +159,16 @@ namespace ThunderKitTests
             Assert.Throws<ArgumentNullException>(() => reference.GetPath(pipeline));
         }
 
-        // Unity initialises serialized array fields, so a PathReference that has
-        // never had components assigned holds an empty Data array rather than null.
+        // Current behaviour: Data stays null until a component is added, and the
+        // failure surfaces from the OfType null check, naming neither the reference
+        // nor the asset it came from.
         [Test]
-        public void GetPath_FreshlyCreatedReference_ReturnsEmpty()
+        public void GetPath_UnassignedData_ThrowsArgumentNullException()
         {
             var reference = fixture.Create<PathReference>();
 
-            Assert.That(reference.Data, Is.Empty);
-            Assert.That(reference.GetPath(null), Is.Empty);
+            Assert.That(reference.Data, Is.Null);
+            Assert.That(() => reference.GetPath(null), Throws.InstanceOf<ArgumentNullException>());
         }
     }
 }
