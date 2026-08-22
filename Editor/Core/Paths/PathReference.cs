@@ -103,9 +103,9 @@ namespace {{0}}
 {{{{
     public class {{1}} : PathComponent
     {{{{
-        public override string GetPath({nameof(PathReference)} output, Pipeline pipeline)
+        protected override string GetPathInternal({nameof(PathReference)} output, Pipeline pipeline)
         {{{{
-            return base.GetPath(output, pipeline);
+            return base.GetPathInternal(output, pipeline);
         }}}}
     }}}}
 }}}}
