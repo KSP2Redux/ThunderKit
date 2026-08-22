@@ -42,9 +42,9 @@ namespace ThunderKitTests
         [Test]
         public void GetPath_ValueWithSeparators_IsNotNormalised()
         {
-            constant.Value = "a\b/c";
+            constant.Value = "a\\b/c";
 
-            Assert.That(constant.GetPath(null, null), Is.EqualTo("a\b/c"));
+            Assert.That(constant.GetPath(null, null), Is.EqualTo("a\\b/c"));
         }
 
         // Current behaviour: Constant is literal. Pull request #132 proposes expanding

@@ -56,7 +56,7 @@ namespace ThunderKitTests
 
         public static bool DosPaths
         {
-            get { return Path.DirectorySeparatorChar == '\'; }
+            get { return Path.DirectorySeparatorChar == '\\'; }
         }
 
         // A rooted path that is valid on the platform running the tests.

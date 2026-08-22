@@ -82,7 +82,7 @@ namespace ThunderKitTests
         public void Resolver_ValueWithoutToken_ReturnsValueWithForwardSlashes()
         {
             var resolver = fixture.Create<Resolver>();
-            resolver.value = "some\plain\path";
+            resolver.value = "some\\plain\\path";
 
             Assert.That(resolver.GetPath(null, null), Is.EqualTo("some/plain/path"));
         }
