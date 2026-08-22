@@ -7,7 +7,6 @@ using ThunderKit.Core.Pipelines;
 using ThunderKit.Core.Utilities;
 using UnityEditor;
 using UnityEngine.Networking;
-using static System.IO.Path;
 
 namespace ThunderKit.Core.Paths
 {
@@ -71,7 +70,8 @@ namespace ThunderKit.Core.Paths
 
         public string GetPath(Pipeline pipeline)
         {
-            return Combine(Data.OfType<PathComponent>().Select(pc => pc.GetPath(this, pipeline)).ToArray());
+            using (PathResolutionScope.Enter(this))
+                return PathAssembler.Assemble(this, pipeline, Data);
         }
 
         private static Dictionary<string, PathReference> FindAllPathReferences()

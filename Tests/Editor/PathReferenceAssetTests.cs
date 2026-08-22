@@ -59,6 +59,33 @@ namespace ThunderKitTests
                 Throws.InstanceOf<ArgumentException>());
         }
 
+        // The second way resolution re-enters itself: a Resolver whose token names
+        // the reference that owns it.
+        [Test]
+        public void GetPath_ResolverTokenNamingItsOwnReference_Throws()
+        {
+            var reference = CreateResolverReference(FirstFolder, "__TK_TokenCycle__");
+
+            var exception = Assert.Throws<InvalidOperationException>(() => reference.GetPath(null));
+            Assert.That(exception.Message, Does.Contain("cycle"));
+        }
+
+        static PathReference CreateResolverReference(string folder, string referenceName)
+        {
+            if (!AssetDatabase.IsValidFolder($"Assets/{folder}"))
+                AssetDatabase.CreateFolder("Assets", folder);
+
+            var reference = ScriptableObject.CreateInstance<PathReference>();
+            AssetDatabase.CreateAsset(reference, $"Assets/{folder}/{referenceName}.asset");
+
+            var resolver = ScriptableObject.CreateInstance<Resolver>();
+            reference.InsertElement(resolver, 0);
+            resolver.value = $"<{referenceName}>";
+
+            AssetDatabase.SaveAssets();
+            return reference;
+        }
+
         static void CreateReference(string folder, string referenceName, string constantValue)
         {
             if (!AssetDatabase.IsValidFolder($"Assets/{folder}"))

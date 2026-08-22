@@ -117,58 +117,67 @@ namespace ThunderKitTests
             Assert.That(reference.GetPath(null), Is.EqualTo(Path.Combine("Shared", "Shared")));
         }
 
-        // Current behaviour: a rooted segment silently discards everything before it.
+        // A rooted segment would discard everything before it, so it is refused
+        // anywhere but the first position.
         [Test]
-        public void GetPath_RootedSegmentAfterFirst_DiscardsPrecedingSegments()
+        public void GetPath_RootedSegmentAfterFirst_Throws()
         {
             var reference = fixture.Reference(
                 fixture.Literal("ThunderKit"),
                 fixture.Literal(PathComponentFixture.RootedPath));
 
-            Assert.That(reference.GetPath(null), Is.EqualTo(PathComponentFixture.RootedPath));
+            var exception = Assert.Throws<InvalidOperationException>(() => reference.GetPath(null));
+            Assert.That(exception.Message, Does.Contain("discards"));
         }
 
-        // Current behaviour: "C:" is what %SYSTEMDRIVE% and %HOMEDRIVE% expand to.
-        // The exact result differs between runtimes, but the preceding segments are
-        // dropped on all of them.
+        // "C:" is what %SYSTEMDRIVE% and %HOMEDRIVE% expand to.
         [Test]
-        public void GetPath_DriveRelativeSegment_DiscardsPrecedingSegments()
+        public void GetPath_DriveRelativeSegment_Throws()
         {
             if (!PathComponentFixture.DosPaths)
                 Assert.Ignore("Drive-relative paths are a DOS path concept.");
 
-            var reference = fixture.Reference(fixture.Literal("ThunderKit"), fixture.Literal("BepInEx"));
-            var expected = reference.GetPath(null);
+            var reference = fixture.Reference(fixture.Literal("ThunderKit"), fixture.Literal("C:"));
 
-            var driveRelative = fixture.Reference(fixture.Literal("ThunderKit"), fixture.Literal("C:"));
-            var result = driveRelative.GetPath(null);
-
-            Assert.That(result, Is.Not.EqualTo(expected));
-            Assert.That(result, Does.Not.StartWith("ThunderKit"));
+            var exception = Assert.Throws<InvalidOperationException>(() => reference.GetPath(null));
+            Assert.That(exception.Message, Does.Contain("drive-relative"));
         }
 
-        // Current behaviour: ManifestName returns null with no manifest assigned, and
-        // Path.Combine rejects it without naming the component responsible.
         [Test]
-        public void GetPath_ComponentReturnsNull_ThrowsArgumentNullException()
+        public void GetPath_DriveRelativeFirstSegment_Throws()
+        {
+            if (!PathComponentFixture.DosPaths)
+                Assert.Ignore("Drive-relative paths are a DOS path concept.");
+
+            var reference = fixture.Reference(fixture.Literal("C:"), fixture.Literal("BepInEx"));
+
+            Assert.Throws<InvalidOperationException>(() => reference.GetPath(null));
+        }
+
+        // ManifestName returns null with no manifest assigned. The failure now names
+        // the component that produced it instead of surfacing as a bare
+        // ArgumentNullException from Path.Combine.
+        [Test]
+        public void GetPath_ComponentReturnsNull_ThrowsNamingTheComponent()
         {
             var pipeline = fixture.Create<Pipeline>();
             var reference = fixture.Reference(
                 fixture.Create<ThunderKit.Core.Paths.Components.ManifestName>());
 
-            Assert.Throws<ArgumentNullException>(() => reference.GetPath(pipeline));
+            var exception = Assert.Throws<InvalidOperationException>(() => reference.GetPath(pipeline));
+            Assert.That(exception.Message, Does.Contain("ManifestName"));
+            Assert.That(exception.Message, Does.Contain("assetlink://"));
         }
 
-        // Current behaviour: Data stays null until a component is added, and the
-        // failure surfaces from the OfType null check, naming neither the reference
-        // nor the asset it came from.
+        // Data stays null until a component is added, which is the state a newly
+        // created PathReference asset is in.
         [Test]
-        public void GetPath_UnassignedData_ThrowsArgumentNullException()
+        public void GetPath_UnassignedData_ReturnsEmpty()
         {
             var reference = fixture.Create<PathReference>();
 
             Assert.That(reference.Data, Is.Null);
-            Assert.That(() => reference.GetPath(null), Throws.InstanceOf<ArgumentNullException>());
+            Assert.That(reference.GetPath(null), Is.Empty);
         }
     }
 }
