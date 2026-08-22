@@ -7,7 +7,6 @@ using ThunderKit.Core.Pipelines;
 using ThunderKit.Core.Utilities;
 using UnityEditor;
 using UnityEngine.Networking;
-using static System.IO.Path;
 
 namespace ThunderKit.Core.Paths
 {
@@ -71,17 +70,29 @@ namespace ThunderKit.Core.Paths
 
         public string GetPath(Pipeline pipeline)
         {
-            return Combine(Data.OfType<PathComponent>().Select(pc => pc.GetPath(this, pipeline)).ToArray());
+            using (PathResolutionScope.Enter(this))
+                return PathAssembler.Assemble(this, pipeline, Data);
         }
 
         private static Dictionary<string, PathReference> FindAllPathReferences()
         {
-            var pathReferenceGuids = AssetDatabase.FindAssets($"t:{nameof(PathReference)}", Constants.FindAllFolders);
-            return pathReferenceGuids
-                .Select(x => AssetDatabase.GUIDToAssetPath(x))
-                .Select(x => AssetDatabase.LoadAssetAtPath<PathReference>(x))
-                .Where(x => x != null)
-                .ToDictionary(pr => pr.name);
+            var pathReferences = AssetDatabase.FindAssets($"t:{nameof(PathReference)}", Constants.FindAllFolders)
+                .Select(guid => AssetDatabase.GUIDToAssetPath(guid))
+                .Select(assetPath => AssetDatabase.LoadAssetAtPath<PathReference>(assetPath))
+                .Where(pathReference => pathReference != null)
+                .ToArray();
+
+            var ambiguous = pathReferences.GroupBy(pathReference => pathReference.name)
+                                          .FirstOrDefault(group => group.Count() > 1);
+            if (ambiguous != null)
+            {
+                var assetPaths = ambiguous.Select(pathReference => AssetDatabase.GetAssetPath(pathReference)).ToArray();
+                throw new InvalidOperationException(
+                    $"PathReference name \"{ambiguous.Key}\" is used by more than one asset: {string.Join(", ", assetPaths)}. " +
+                    "PathReference names must be unique because they are addressed by name.");
+            }
+
+            return pathReferences.ToDictionary(pathReference => pathReference.name);
         }
 
         public override string ElementTemplate =>
@@ -92,9 +103,9 @@ namespace {{0}}
 {{{{
     public class {{1}} : PathComponent
     {{{{
-        public override string GetPath({nameof(PathReference)} output, Pipeline pipeline)
+        protected override string GetPathInternal({nameof(PathReference)} output, Pipeline pipeline)
         {{{{
-            return base.GetPath(output, pipeline);
+            return base.GetPathInternal(output, pipeline);
         }}}}
     }}}}
 }}}}
