@@ -35,6 +35,20 @@
     executor sub-assets, preserving each executor's enabled state
   * Equal-priority executors are ordered by type name, so the saved order no longer
     depends on Unity's sub-asset ordering
+* Path resolution reports authoring mistakes instead of failing opaquely — new
+  [PathAssembler](Editor/Core/Paths/PathAssembler.cs) and
+  [PathResolutionScope](Editor/Core/Paths/PathResolutionScope.cs) sit behind
+  `PathReference.GetPath`
+  * A cycle through `OutputReference` or a `Resolver` token names the chain that caused
+    it, rather than recursing until `StackOverflowException` terminates the Editor
+  * Null, invalid, drive-relative and misplaced rooted segments are refused and name the
+    `PathComponent` that produced them, so a segment can no longer silently discard the
+    components before it
+  * Two `PathReference` assets sharing a name report both assets instead of surfacing as
+    a dictionary key collision
+* [PathReference](Editor/Core/Paths/PathReference.cs) `ElementTemplate` scaffolds
+  `GetPathInternal`, so generated `PathComponent`s compile — it previously declared an
+  override of the non-virtual `GetPath`
 
 ### Tests
 
@@ -47,6 +61,17 @@
 * Added [PlayerDataResolverTests](Tests/Editor/PlayerDataResolverTests.cs) covering player
   layout selection and the bundle branch against a synthesized UnityFS bundle, so the
   compressed layout is exercised without a multi-megabyte fixture
+* Added coverage for the path component system across
+  [PathComponentTests](Tests/Editor/PathComponentTests.cs),
+  [PathComponentFileSystemTests](Tests/Editor/PathComponentFileSystemTests.cs),
+  [PathReferenceCombineTests](Tests/Editor/PathReferenceCombineTests.cs),
+  [PathReferenceCycleTests](Tests/Editor/PathReferenceCycleTests.cs) and
+  [PathReferenceAssetTests](Tests/Editor/PathReferenceAssetTests.cs)
+  * Pins the authoring patterns that ship in `Templates/`, including `Constant("..")` and
+    a rooted first component, so future validation cannot outlaw them
+  * Records that `ManifestName` and `ManifestVersion` return null rather than entering
+    their reported-error paths, and that `FindFile` and `FindDirectory` lose the
+    underlying cause outside pipeline execution
 
 ## 9.4.3
 
