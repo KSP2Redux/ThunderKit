@@ -14,6 +14,16 @@
     which carries no version resource outside Windows
   * The **Installed Unity Games** window reports these games' Unity version instead of
     falling back to scanning file headers
+* Two `PathComponent`s resolve per-machine locations so a shared PathReference no longer
+  has to be hand-edited per collaborator —
+  [SpecialFolder](Editor/Core/Paths/Components/SpecialFolder.cs) and
+  [EnvironmentVariable](Editor/Core/Paths/Components/EnvironmentVariable.cs)
+  * `SpecialFolder` selects an `Environment.SpecialFolder`, so `ApplicationData` resolves
+    to `%APPDATA%`, `~/.config` or `~/Library/Application Support` from one asset
+  * `EnvironmentVariable` looks a variable up by name with an optional fallback, so an
+    unset variable is reported rather than becoming a literal path segment
+  * Neither parses `%VAR%` or `$VAR`, so the same asset resolves on Windows, Linux and
+    macOS
 
 ### Fixes
 
@@ -72,6 +82,9 @@
   * Records that `ManifestName` and `ManifestVersion` return null rather than entering
     their reported-error paths, and that `FindFile` and `FindDirectory` lose the
     underlying cause outside pipeline execution
+* [PathComponentEnvironmentTests](Tests/Editor/PathComponentEnvironmentTests.cs) cover both
+  new components, including the unset-variable diagnostic and that shell syntax in a
+  variable name is looked up verbatim rather than unwrapped
 
 ## 9.4.3
 
