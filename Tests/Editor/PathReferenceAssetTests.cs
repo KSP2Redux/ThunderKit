@@ -46,17 +46,21 @@ namespace ThunderKitTests
                 Is.EqualTo("One/Two"));
         }
 
-        // Current behaviour: names are collected into a dictionary, so two assets
-        // sharing a name break every path resolution in the project with an
-        // exception that names neither the reference nor the assets involved.
+        // References are addressed by name, so two assets sharing one is ambiguous.
+        // The failure names the duplicate and both assets rather than surfacing as a
+        // bare dictionary key collision.
         [Test]
-        public void ResolvePath_DuplicateReferenceNames_ThrowsArgumentException()
+        public void ResolvePath_DuplicateReferenceNames_ReportsTheConflict()
         {
             CreateReference(FirstFolder, "__TK_Duplicate__", "First");
             CreateReference(SecondFolder, "__TK_Duplicate__", "Second");
 
-            Assert.That(() => PathReference.ResolvePath("<__TK_Duplicate__>", null, null),
-                Throws.InstanceOf<ArgumentException>());
+            var exception = Assert.Throws<InvalidOperationException>(
+                () => PathReference.ResolvePath("<__TK_Duplicate__>", null, null));
+
+            Assert.That(exception.Message, Does.Contain("__TK_Duplicate__"));
+            Assert.That(exception.Message, Does.Contain(FirstFolder));
+            Assert.That(exception.Message, Does.Contain(SecondFolder));
         }
 
         // The second way resolution re-enters itself: a Resolver whose token names
